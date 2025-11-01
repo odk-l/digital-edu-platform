@@ -38,19 +38,18 @@
 </template>
 
 <script setup lang="ts">
-import {defineProps, defineEmits, onMounted, reactive, ref, watch} from 'vue'
+import { defineEmits, onMounted, reactive, ref, watch, computed } from 'vue'
 import {useApi} from "@/api/handler";
 import {ApiMap} from "@/api/type";
 import {game} from "@/api";
 import DynamicForm from "@/components/DynamicForm.vue";
+import { useStore } from "vuex";
 
-const props = defineProps<{
-  data?: ApiMap['/game/status/:id']['resp']
-}>()
-
+const store=useStore()
 const emits = defineEmits(['update'])
 
-const GameStatus = ref<ApiMap['/game/status/:id']['resp'] | null>(null)
+const GameStatus = computed(() => store.getters["gameModule/gameStatus"])
+const gameState = computed(() => store.getters["gameModule/gameState"])
 const eventData = ref<ApiMap['/game/special/list']['resp'] | null>(null)
 
 const submitObject = reactive({
@@ -59,9 +58,8 @@ const submitObject = reactive({
   data: {}
 })
 
-watch(() => props.data, newVal => {
-  GameStatus.value = newVal ?? null
-  useSpecialList()
+watch(() => GameStatus.value, newVal => {
+  if(newVal) useSpecialList()
 })
 
 onMounted(() => {
@@ -90,7 +88,7 @@ function handleClick(index: number, subIndex: number) {
 
 const useSpecialList = () => {
   if (!GameStatus.value) return
-  if (GameStatus.value.chessPhase !== 3) return
+  if (!gameState.value.isSettlement?.value) return
   useApi({
     api: game.SpecialList(GameStatus.value.id),
     onSuccess: resp => {

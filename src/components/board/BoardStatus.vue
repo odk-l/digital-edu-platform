@@ -8,15 +8,15 @@
       <div class="ma-3"><span class="font-weight-bold">游戏赛段：</span>
         <v-chip :color="GameDisplay.colorTrans('stage', GameStatus.stage)">{{GameDisplay.displayTrans('stage',GameStatus.stage)}}</v-chip>
       </div>
-      <div v-if="GameStatus.stage === 1">
-        <div class="ma-3"><span class="font-weight-bold">棋盘赛轮次：</span>第 {{GameStatus.chessRound}} 轮
+      <div v-if="gameState.isChessPhase?.value">
+        <div class="ma-3"><span class="font-weight-bold">棋盘赛轮次：</span>第 {{gameState.currentRound?.value}} 轮
         </div>
 
         <div class="ma-3 d-flex justify-space-between ">
         <div><span class="font-weight-bold">棋盘阶段：</span>
           <v-chip :color="GameDisplay.colorTrans('chessPhase', GameStatus.chessPhase)">{{GameDisplay.displayTrans('chessPhase', GameStatus.chessPhase)}}</v-chip>
         </div>
-        <v-btn v-if="GameStatus.chessPhase === 1" height="30" text="设置" variant="outlined" color="primary" @click="showOverlay = true"></v-btn>
+        <v-btn v-if="gameState.isSettingStep?.value" height="30" text="设置" variant="outlined" color="primary" @click="showOverlay = true"></v-btn>
         </div>
       </div>
     </div>
@@ -29,26 +29,17 @@
 </template>
 
 <script setup lang="ts">
-import {defineProps, defineEmits, ref, watch, onMounted} from 'vue'
+import {defineEmits, ref,computed} from 'vue'
 import {GameDisplay} from "@/utils";
-import {ApiMap} from "@/api/type";
 import TeamTile from "@/components/board/TeamTile.vue";
+import {useStore} from 'vuex'
 
-const props = defineProps<{
-  data: ApiMap['/game/status/:id']['resp']
-}>()
-
-const GameStatus = ref<ApiMap['/game/status/:id']['resp'] | null>(null)
+const store=useStore()
+const GameStatus = computed(() => store.getters["gameModule/gameStatus"]);
+const gameState = computed(() => store.getters["gameModule/gameState"]);
 const emits = defineEmits(['update'])
 const showOverlay = ref<boolean>(false)
 
-onMounted(() => {
-  GameStatus.value = props.data
-})
-
-watch(() => props.data, newVal => {
-  GameStatus.value = newVal
-})
 </script>
 
 <style scoped lang="scss">

@@ -1,7 +1,7 @@
 <template>
   <v-card rounded class="mt-3" height="400px">
     <div class="pa-4 bg-blue-lighten-1 text-lg-h6">本回合答题排行榜</div>
-    <div class="d-flex justify-center align-center" style="height: 350px" v-if="GameStatus.chessPhase === 0 || !gradeRank">
+    <div class="d-flex justify-center align-center" style="height: 350px" v-if="gameState.isUploadGrade?.value || !gradeRank">
       <FileUpload text="上传答题数据" @upload="useUploadGrade"/>
     </div>
     <div class="pa-4" ref="chartRef" style="width: 100%; height: 350px;"></div>
@@ -9,26 +9,26 @@
 </template>
 
 <script setup lang="ts">
-import {defineEmits, defineProps, onMounted, ref, watch} from 'vue'
+import {defineEmits, onMounted, ref, computed} from 'vue'
 import FileUpload from "@/components/FileUpload.vue";
 import {useApi} from "@/api/handler";
 import {game} from "@/api";
 import * as echarts from 'echarts';
-import {ApiMap} from "@/api/type";
+import { ApiMap } from "@/api/type";
+import {useStore} from "vuex"
 
 const chartRef = ref<HTMLDivElement | null>(null)
-const props = defineProps<{
-  gameId: number
-  data: ApiMap['/game/status/:id']['resp']
-}>()
 
+const store = useStore()
 const emits = defineEmits(['update'])
-const GameStatus = ref<ApiMap['/game/status/:id']['resp']>(props.data)
+const GameStatus = computed(() => store.getters["gameModule/gameStatus"]);
+const gameId = computed(() => store.getters["gameModule/gameId"]);
+const gameState = computed(() => store.getters["gameModule/gameState"]);
 const gradeRank = ref<ApiMap['/game/upload/chess']['resp'] | null>(null)
 
 const useUploadGrade = (file: File) => {
   useApi({
-    api: game.UploadGrade(props.gameId, file),
+    api: game.UploadGrade(gameId.value, file),
     onSuccess: async resp => {
       gradeRank.value = resp.data as ApiMap['/game/upload/chess']['resp']
       emits('update')
@@ -39,19 +39,15 @@ const useUploadGrade = (file: File) => {
 }
 
 const useGradeRank = () => {
-  if (GameStatus.value.chessPhase === 0) return
+  if ( !gameState.value.isUploadGrade?.value ) return
   useApi({
-    api: game.GradeRank(props.gameId),
+    api: game.GradeRank(gameId.value),
     onSuccess: resp => {
       gradeRank.value = resp.data as ApiMap['/game/xxt/rank/:id']['resp']
       renderChart()
     }
   })
 }
-
-watch(() => props.data, newVal => {
-  GameStatus.value = newVal
-})
 
 onMounted(() => {
   useGradeRank()

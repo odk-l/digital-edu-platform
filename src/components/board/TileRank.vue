@@ -76,20 +76,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineProps, defineEmits, onMounted, watch, reactive } from 'vue'
+import { ref, computed, defineEmits, onMounted, watch, reactive,defineProps} from 'vue'
 import { ApiMap } from '@/api/type'
 import { game } from '@/api'
 import { useApi } from '@/api/handler'
 import DynamicForm from '../DynamicForm.vue'
+import {useStore} from 'vuex'
 
 const props = defineProps<{
-  data?: ApiMap['/game/status/:id']['resp']
   maxHeight?: number
   showChange?: boolean
   mode?: 'team' | 'student'
   enableEdit: boolean
 }>()
 
+const store = useStore()
 const enableEdit = computed(() => props.enableEdit ?? true)
 
 const emits = defineEmits<{
@@ -106,7 +107,7 @@ const computedMode = computed(() =>
 
 const tileRank = ref<ApiMap['/game/rank/team/:id']['resp']>([])
 const individualRank = ref<ApiMap['/game/rank/student/:id']['resp']>([])
-const GameStatus = ref<ApiMap['/game/status/:id']['resp'] | null>(null)
+const GameStatus = computed(()=>store.getters["gameModule/gameStatus"])
 
 const rankColors = ['amber darken-2', 'blue-grey lighten-1', 'deep-orange lighten-1']
 
@@ -155,8 +156,7 @@ function useSubmitScoreEditor(data: ApiMap['/game/score/update']['req']) {
   console.log(individualRank.value)
 }
 
-watch(() => props.data, () => {
-  GameStatus.value = props.data ?? null
+watch(() => GameStatus.value, () => {
   loadRankData()
 }, { immediate: true })
 watch(computedMode, () => loadRankData())
@@ -164,17 +164,17 @@ watch(computedMode, () => loadRankData())
 onMounted(() => loadRankData())
 
 function loadRankData() {
-  if (!props.data) return
+  if (!GameStatus.value) return
   if (computedMode.value) {
     useApi({
-      api: game.TileRank(props.data.id),
+      api: game.TileRank(GameStatus.value.id),
       onSuccess: resp => {
         tileRank.value = resp.data as ApiMap['/game/rank/team/:id']['resp']
       }
     })
   } else {
     useApi({
-      api: game.IndividualRank(props.data.id),
+      api: game.IndividualRank(GameStatus.value.id),
       onSuccess: resp => {
         individualRank.value = resp.data as ApiMap['/game/rank/student/:id']['resp']
       }

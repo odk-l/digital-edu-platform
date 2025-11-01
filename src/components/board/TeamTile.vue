@@ -30,22 +30,20 @@
 </template>
 
 <script setup lang="ts">
-import {ref, defineProps, defineEmits, onMounted} from 'vue'
+import {ref, defineEmits, onMounted,computed} from 'vue'
 import {game} from "@/api";
 import {useApi} from "@/api/handler";
-import {ApiMap} from "@/api/type";
+import { ApiMap } from "@/api/type";
+import {useStore} from 'vuex'
 
 const gradeRank = ref<ApiMap['/game/xxt/rank/:id']['resp']>([])
-
-const props = defineProps<{
-  gameId: number
-}>()
 
 const emits = defineEmits<{
   (e: 'update'): void
   (e: 'close'): void
 }>()
-
+const store = useStore()
+const gameId = computed(()=>store.getters["gameModule/gameId"])
 const form = ref<Record<number, number>>({})
 
 onMounted(() => {
@@ -54,7 +52,7 @@ onMounted(() => {
 
 const useUploadAssign = () => {
   useApi({
-    api: game.UploadAssign(props.gameId, form.value),
+    api: game.UploadAssign(gameId.value, form.value),
     onSuccess: () => { emits('update'); emits('close') },
     tip: '设置成功'
   })
@@ -62,7 +60,7 @@ const useUploadAssign = () => {
 
 const useGradeRank = () => {
   useApi({
-    api: game.GradeRank(props.gameId),
+    api: game.GradeRank(gameId.value),
     onSuccess: resp => {
       gradeRank.value = resp.data as ApiMap['/game/xxt/rank/:id']['resp']
     }

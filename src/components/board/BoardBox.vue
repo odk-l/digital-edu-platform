@@ -1,7 +1,7 @@
 <template>
   <div class="d-flex flex-column" style="height: 100vh">
     <div
-      v-if="GameStatus.chessPhase === 2"
+      v-if="gameState.isMoving?.value"
       class="svg-header d-flex justify-center text-h5 mt-6"
       style="flex: 1"
     >
@@ -31,7 +31,7 @@
       </svg>
     </div>
     <div
-      v-if="GameStatus.chessPhase === 2"
+      v-if="gameState.isMoving?.value"
       class="d-flex justify-space-around px-12 mb-4"
       style="flex: 1"
     >
@@ -86,7 +86,7 @@
 <script setup lang="ts">
 import Hex from "@/components/HexUnit.vue";
 import { HexGrid } from "@/types/hex";
-import { defineProps, defineEmits, watch, reactive, ref, onMounted } from "vue";
+import { defineProps, defineEmits, watch, reactive, ref, onMounted,computed } from "vue";
 import { useApi } from "@/api/handler";
 import { game } from "@/api";
 import { ApiMap } from "@/api/type";
@@ -94,21 +94,23 @@ import { GameDisplay, GameUtils } from "@/utils";
 import EventTip from "@/components/board/EventTip.vue";
 import { eventTip } from "@/types/event";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import { useStore } from "vuex";
 
 const props = defineProps<{
-  data: ApiMap["/game/status/:id"]["resp"];
   originX: number;
   originY: number;
   radius: number;
 }>();
 
+const store=useStore()
 const et = reactive(new eventTip());
 const emits = defineEmits(["update"]);
 const selectingTeam = ref<number>(0);
 const actionLeft = ref<number>(0);
 const tileSelected = ref<Array<number>>([]);
-const GameStatus = ref<ApiMap["/game/status/:id"]["resp"]>(props.data);
 const selectedNumber = ref<number>(3);
+const GameStatus = computed(() => store.getters["gameModule/gameStatus"]);
+const gameState = computed(() => store.getters["gameModule/gameState"]);
 
 const goldenCenterOccupy = ref<{ b: boolean; id: number }>({ b: false, id: 0 });
 const blindBoxOccupy = ref<{ b: boolean; ids: Array<number> }>({
@@ -293,13 +295,12 @@ const useTileOccupy = () => {
 };
 
 watch(
-  () => props.data,
-  (newVal) => {
-    if (newVal.stage === 0) useGameInit();
-    if (newVal.chessPhase === 2) useUnselectedList();
-    GameStatus.value = newVal;
-    if (GameStatus.value.stage !== 0) useTileSets();
-    if (newVal.chessRound === 3 && newVal.chessPhase === 0) {
+  () => gameState.value,
+  (newState) => {
+    if (newState.isProposalInit?.value) useGameInit();
+    if (newState.isMoving?.value) useUnselectedList();
+    if (!newState.isProposalInit?.value) useTileSets();
+    if (gameState.value.currentRound?.value === 3 && newState.value.isUploadGrade?.value) {
       et.showEventTip("机会宝地已在地图上出现");
     }
   },
