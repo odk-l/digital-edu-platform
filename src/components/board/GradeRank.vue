@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import {defineEmits, onMounted, ref, computed} from 'vue'
+import {defineEmits, onMounted, onUnmounted, ref, computed} from 'vue'
 import FileUpload from "@/components/FileUpload.vue";
 import {useApi} from "@/api/handler";
 import {game} from "@/api";
@@ -18,10 +18,10 @@ import { ApiMap } from "@/api/type";
 import {useStore} from "vuex"
 
 const chartRef = ref<HTMLDivElement | null>(null)
+let chartInstance: echarts.ECharts | null = null // 缓存实例
 
 const store = useStore()
 const emits = defineEmits(['update'])
-const GameStatus = computed(() => store.getters["gameModule/gameStatus"]);
 const gameId = computed(() => store.getters["gameModule/gameId"]);
 const gameState = computed(() => store.getters["gameModule/gameState"]);
 const gradeRank = ref<ApiMap['/game/upload/chess']['resp'] | null>(null)
@@ -50,18 +50,28 @@ const useGradeRank = () => {
 }
 
 onMounted(() => {
+  // 初始化图表实例（只创建一次）
+  if (chartRef.value) {
+    chartInstance = echarts.init(chartRef.value)
+  }
   useGradeRank()
 })
 
+onUnmounted(() => {
+  // 组件销毁时释放实例
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
+})
+
 const renderChart = () => {
-    if (!chartRef.value || !gradeRank.value) {
-      return
-    }
-  const chart = echarts.init(chartRef.value);
+  if (!chartInstance || !gradeRank.value) return;
 
   gradeRank.value.reverse()
 
-  chart.setOption({
+  // 使用缓存的实例更新数据（这里会触发重新渲染）
+  chartInstance.setOption({
     grid: {
       top: 10,
       left: 10,
