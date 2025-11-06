@@ -42,11 +42,7 @@
         </v-expansion-panel>
       </v-expansion-panels>
       <SpecialCard @update="useGameStatus" />
-      <TileRank
-        :enable-edit="true"
-        :max-height="400"
-        show-change
-      />
+      <TileRank :enable-edit="true" :max-height="400" show-change />
     </div>
     <div style="flex: 2; min-width: 800px">
       <BoardBox
@@ -60,15 +56,8 @@
     </div>
     <div class="right">
       <LegendBox />
-      <BoardStatus
-        v-if="GameStatus"
-        @update="useGameStatus"
-      />
-      <GradeRank
-        v-if="GameStatus"
-        :game-id="gameId"
-        @update="useGameStatus"
-      />
+      <BoardStatus v-if="GameStatus" @update="useGameStatus" />
+      <GradeRank v-if="GameStatus" :game-id="gameId" @update="useGameStatus" />
     </div>
   </div>
 </template>
@@ -78,7 +67,6 @@ import { useApi } from "@/api/handler";
 import { game } from "@/api";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ApiMap } from "@/api/type";
 import BoardBox from "@/components/board/BoardBox.vue";
 import BoardStatus from "@/components/board/BoardStatus.vue";
 import GradeRank from "@/components/board/GradeRank.vue";
@@ -110,9 +98,9 @@ onMounted(() => {
 // ============ 状态监听 ============
 // 监听是否进入提案赛阶段
 watch(
-  () => gameState.value.isProposalPhase?.value,
-  (isProposal) => {
-    if (isProposal && GameStatus.value) {
+  () => gameState.value?.isProposalPhase?.value,
+  (isProposalPhase) => {
+    if (isProposalPhase && GameStatus.value) {
       router.push({ path: "/proposal", query: { id: GameStatus.value.id } });
     }
   }
@@ -126,7 +114,7 @@ watch(
 const refreshGameStatus = (id?: number) => {
   // 优先使用传入的 id，否则使用 Store 中的 gameId
   const targetId = id ?? gameId.value;
-  
+
   useApi({
     api: game.GameStatus(targetId),
     onSuccess: (resp) => {

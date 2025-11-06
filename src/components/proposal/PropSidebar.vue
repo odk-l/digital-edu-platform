@@ -122,15 +122,15 @@
 </template>
 
 <script setup lang="ts">
-import {defineProps, ref, watch} from 'vue'
+import { ref, watch,computed} from 'vue'
 import {ApiMap} from '@/api/type'
 import {useApi} from "@/api/handler";
-import {proposal} from "@/api";
+import { proposal } from "@/api";
+import {useStore} from "vuex"
 
-const props = defineProps<{
-  data: ApiMap['/game/status/:id']['resp']
-}>()
-const GameStatus = ref<ApiMap['/game/status/:id']['resp'] | null>(null)
+const store = useStore()
+const GameStatus = computed(() => store.getters["gameModule/gameStatus"]);
+const gameState = computed(() => store.getters["gameModule/gameState"]);
 const propStage = ['初始化提案积分', '选择提案提出轮次', '每轮提出提案', '投票', '正式游戏']
 const proposalTeam = ref<ApiMap['/proposal/list']['resp']>([])
 const showOverlay = ref<boolean>(false)
@@ -157,8 +157,7 @@ const useWinProposal = () => {
   })
 }
 
-watch(() => props.data, newVal => {
-  GameStatus.value = newVal ?? null
+watch(() => GameStatus.value, newVal => {
   if (!GameStatus.value) return
   if (GameStatus.value?.status === 2) return
   useProposalList()

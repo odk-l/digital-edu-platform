@@ -88,81 +88,96 @@ export function useGameStates(gameStatus: (() => ApiMap['/game/status/:id']['res
     return inferGameState(status)
   })
 
+  // 安全的状态判断辅助函数
+  const safeCheck = (checkFn: () => boolean) => {
+    try {
+      return currentState.value ? checkFn() : false
+    } catch {
+      return false
+    }
+  }
+
   // ============ 阶段判断 ============
   const isChessPhase = computed(() => {
-    return currentState.value?.startsWith('CHESS_') ?? false
+    return safeCheck(() => currentState.value?.startsWith('CHESS_') ?? false)
   })
 
   const isProposalPhase = computed(() => {
-    return currentState.value?.startsWith('PROPOSAL_') ?? false
+    return safeCheck(() => currentState.value?.startsWith('PROPOSAL_') ?? false)
   })
 
   const isFinished = computed(() => {
-    return currentState.value === SimpleGameState.GAME_FINISHED
+    return safeCheck(() => currentState.value === SimpleGameState.GAME_FINISHED)
   })
 
   // ============ 具体状态判断 ============
   const isUploadGrade = computed(() => {
-    return currentState.value === SimpleGameState.CHESS_UPLOAD_GRADE
+    return safeCheck(() => currentState.value === SimpleGameState.CHESS_UPLOAD_GRADE)
   })
 
   const isUploadLand = computed(() => {
-    return currentState.value === SimpleGameState.CHESS_UPLOAD_LAND
+    return safeCheck(() => currentState.value === SimpleGameState.CHESS_UPLOAD_LAND)
   })
 
   const isMoving = computed(() => {
-    return currentState.value === SimpleGameState.CHESS_MOVING
+    return safeCheck(() => currentState.value === SimpleGameState.CHESS_MOVING)
   })
 
   const isSettlement = computed(() => {
-    return currentState.value === SimpleGameState.CHESS_SETTLEMENT
+    return safeCheck(() => currentState.value === SimpleGameState.CHESS_SETTLEMENT)
   })
 
   const isProposalInit = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_INIT
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_INIT)
   })
 
   const isProposalOrder = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_ORDER
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_ORDER)
   })
 
   const isRound1Submit = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_ROUND_1_SUBMIT
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_ROUND_1_SUBMIT)
   })
 
   const isRound1Vote = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_ROUND_1_VOTE
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_ROUND_1_VOTE)
   })
 
   const isRound2Submit = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_ROUND_2_SUBMIT
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_ROUND_2_SUBMIT)
   })
 
   const isRound2Debate = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_ROUND_2_DEBATE
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_ROUND_2_DEBATE)
   })
 
   const isRound2Score = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_ROUND_2_SCORE
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_ROUND_2_SCORE)
   })
 
   const isRound3Submit = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_ROUND_3_SUBMIT
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_ROUND_3_SUBMIT)
   })
 
   const isRound3Vote = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_ROUND_3_VOTE
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_ROUND_3_VOTE)
   })
 
   const isKnockout = computed(() => {
-    return currentState.value === SimpleGameState.PROPOSAL_KNOCKOUT
+    return safeCheck(() => currentState.value === SimpleGameState.PROPOSAL_KNOCKOUT)
   })
 
   // ============ 轮次信息 ============
   const currentRound = computed(() => {
     const status = typeof gameStatus === 'function' ? gameStatus() : gameStatus
     if (!status) return 0
-    return status.chessRound || status.proposalRound
+    // 根据当前阶段返回对应的轮次
+    if (status.stage === 1) {
+      return status.chessRound || 0  // 棋盘赛阶段返回 chessRound
+    } else if (status.stage === 2) {
+      return status.proposalRound || 0  // 提案赛阶段返回 proposalRound
+    }
+    return 0
   })
 
   const proposalStage = computed(() => {
@@ -178,8 +193,8 @@ export function useGameStates(gameStatus: (() => ApiMap['/game/status/:id']['res
       [SimpleGameState.CHESS_UPLOAD_LAND]: '上传领地阶段',
       [SimpleGameState.CHESS_MOVING]: '走棋阶段',
       [SimpleGameState.CHESS_SETTLEMENT]: '结算阶段',
-      [SimpleGameState.PROPOSAL_INIT]: '初始化积分',
-      [SimpleGameState.PROPOSAL_ORDER]: '设置轮次顺序',
+      [SimpleGameState.PROPOSAL_INIT]: '初始化提案积分',
+      [SimpleGameState.PROPOSAL_ORDER]: '选择提案提出轮次',
       [SimpleGameState.PROPOSAL_ROUND_1_SUBMIT]: '第一轮提案-提交',
       [SimpleGameState.PROPOSAL_ROUND_1_VOTE]: '第一轮提案-投票',
       [SimpleGameState.PROPOSAL_ROUND_2_SUBMIT]: '第二轮提案-提交',
@@ -187,7 +202,7 @@ export function useGameStates(gameStatus: (() => ApiMap['/game/status/:id']['res
       [SimpleGameState.PROPOSAL_ROUND_2_SCORE]: '第二轮提案-评分',
       [SimpleGameState.PROPOSAL_ROUND_3_SUBMIT]: '第三轮提案-提交',
       [SimpleGameState.PROPOSAL_ROUND_3_VOTE]: '第三轮提案-投票',
-      [SimpleGameState.PROPOSAL_KNOCKOUT]: '淘汰赛',
+      [SimpleGameState.PROPOSAL_KNOCKOUT]: '正式游戏',
       [SimpleGameState.GAME_FINISHED]: '游戏结束',
     }
     return currentState.value ? descriptions[currentState.value] : '未知状态'

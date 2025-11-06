@@ -46,18 +46,17 @@
 </template>
 
 <script setup lang="ts">
-import {ref, watch, defineProps, defineEmits} from "vue";
+import {ref, watch, defineEmits,computed} from "vue";
 import {useApi} from "@/api/handler";
 import {game, proposal} from "@/api";
 import {ApiMap} from "@/api/type";
 import {splitThree} from "@/utils/random";
 import InitDelete from "@/components/proposal/init/InitDelete.vue";
+import { useStore } from "vuex";
 
-const props = defineProps<{
-  data: ApiMap['/game/status/:id']['resp']
-}>()
+const store = useStore()
 const emits = defineEmits(['update'])
-const GameStatus = ref<ApiMap['/game/status/:id']['resp'] | null>(null)
+const GameStatus = computed(() => store.getters["gameModule/gameStatus"]);
 const tabValue = ref<number>(1)
 const tileRank = ref<ApiMap['/game/rank/team/:id']['resp']>([])
 const selectedTeam = ref<Array<Array<{teamId: string, teamLeader: string, check: boolean}>>>([[], [], []])
@@ -76,9 +75,9 @@ function GetMaxSelected(num: number) {
 }
 
 const useTileRank = () => {
-  if (!props.data) return
+  if (!GameStatus.value) return
   useApi({
-    api: game.TileRank(props.data.id),
+    api: game.TileRank(GameStatus.value.id),
     onSuccess: resp => {
       tileRank.value = (resp.data as ApiMap['/game/rank/team/:id']['resp'])
           .filter(item => !removedList.value.includes(item.teamId))
@@ -122,8 +121,7 @@ const useRemovedList = () => {
   })
 }
 
-watch(() => props.data, () => {
-  GameStatus.value = props.data ?? null
+watch(() => GameStatus?.value, () => {
   useTileRank()
   useRemovedList()
 }, {immediate: true})
